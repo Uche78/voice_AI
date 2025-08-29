@@ -1,113 +1,217 @@
 const express = require('express');
 const twilio = require('twilio');
+const openaiService = require('../services/openaiService');
+const callLogger = require('../utils/callLogger');
 
 const router = express.Router();
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
-// Basic test route
-router.get('/test', (req, res) => {
-  res.json({ message: 'Voice route working' });
-});
-
-// Handle incoming calls with basic TwiML
-router.post('/incoming', (req, res) => {
+// Handle incoming calls with conversation capability
+router.post('/incoming', async (req, res) => {
   try {
+    const callerNumber = req.body.From || 'Unknown';
     const twiml = new VoiceResponse();
     const shopName = process.env.SHOP_NAME || 'Auto Repair Shop';
     
+    // Log the incoming call
+    callLogger.logCall({
+      callerNumber,
+      action: 'incoming_call',
+      details: 'Call received and greeting played'
+    });
+    
+    // Professional greeting with natural speech
     twiml.say({
-      voice: 'alice',
+      voice: 'Polly.Joanna',
       language: 'en-US'
-    }, `Hello, you have reached ${shopName}. This is a test of the voice system.`);
+    }, `Hi there! You've reached ${shopName}. I'm Sarah, your virtual assistant. How can I help you today?`);
     
+    // Gather customer speech input
+    const gather = twiml.gather({
+      input: 'speech',
+      action: '/voice/process',
+      method: 'POST',
+      speechTimeout: 4,
+      timeout: 10,
+      language: 'en-US',
+      enhanced: true // Better speech recognition
+    });
+    
+    gather.say({
+      voice: 'Polly.Joanna'
+    }, 'I can help with our hours, services, appointments, or connect you with the owner.');
+    
+    // Fallback if no input
     twiml.say({
-      voice: 'alice'
-    }, 'The webhook is working correctly. Thank you for calling.');
+      voice: 'Polly.Joanna'
+    }, "I didn't catch that. Let me get the owner on the line for you.");
     
-    twiml.hangup();
+    twiml.redirect('/voice/transfer');
     
     res.type('text/xml');
     res.send(twiml.toString());
   } catch (error) {
     console.error('Error in incoming call handler:', error);
     const twiml = new VoiceResponse();
-    twiml.say('Sorry, there was an error processing your call.');
-    twiml.hangup();
-    res.type('text/xml');
-    res.send(twiml.toString());
-  }
-});
-
-// Simple menu test
-router.post('/menu', (req, res) => {
-  try {
-    const twiml = new VoiceResponse();
-    
     twiml.say({
-      voice: 'alice'
-    }, 'Press 1 for business hours, press 2 to leave a message, or press 0 to hang up.');
-    
-    const gather = twiml.gather({
-      numDigits: 1,
-      action: '/voice/handle-menu',
-      method: 'POST'
-    });
-    
-    twiml.say('We did not receive a selection. Goodbye.');
-    twiml.hangup();
-    
-    res.type('text/xml');
-    res.send(twiml.toString());
-  } catch (error) {
-    console.error('Error in menu handler:', error);
-    const twiml = new VoiceResponse();
-    twiml.say('Sorry, there was an error. Goodbye.');
+      voice: 'Polly.Joanna'
+    }, "Sorry, I'm having some technical trouble. Please try calling back in a moment.");
     twiml.hangup();
     res.type('text/xml');
     res.send(twiml.toString());
   }
 });
 
-// Handle menu selections
-router.post('/handle-menu', (req, res) => {
+// Process customer speech with OpenAI
+router.post('/process', async (req, res) => {
   try {
-    const digit = req.body.Digits;
+    const speechResult = req.body.SpeechResult || '';
+    const confidence = parseFloat(req.body.Confidence || 0);
+    const callerNumber = req.body.From || 'Unknown';
+    
+    console.log(`Customer said: "${speechResult}" (confidence: ${confidence})`);
+    
     const twiml = new VoiceResponse();
     
-    switch (digit) {
-      case '1':
-        twiml.say({
-          voice: 'alice'
-        }, 'We are open Monday through Friday from 8 AM to 6 PM, Saturday 9 AM to 4 PM, and closed on Sundays.');
-        break;
-      case '2':
-        twiml.say({
-          voice: 'alice'
-        }, 'Please leave your message after the beep.');
-        twiml.record({
-          maxLength: 60,
-          finishOnKey: '#'
-        });
-        break;
-      case '0':
-        twiml.say({
-          voice: 'alice'
-        }, 'Thank you for calling. Goodbye.');
-        break;
-      default:
-        twiml.say({
-          voice: 'alice'
-        }, 'Invalid selection. Goodbye.');
+    // Low confidence - ask for clarification
+    if (confidence < 0.7) {
+      twiml.say({
+        voice: 'Polly.Joanna'
+      }, "Sorry, I didn't quite catch that. Could you tell me again how I can help you?");
+      
+      const gather = twiml.gather({
+        input: 'speech',
+        action: '/voice/process',
+        method: 'POST',
+        speechTimeout: 4,
+        timeout: 10,
+        enhanced: true
+      });
+      
+      twiml.redirect('/voice/transfer');
+      res.type('text/xml');
+      res.send(twiml.toString());
+      return;
     }
     
+    // Process speech with OpenAI for intelligent response
+    const response = await openaiService.processCustomerInput(callerNumber, speechResult);
+    
+    twiml.say({ 
+      voice: 'Polly.Joanna' 
+    }, response.message);
+    
+    // Route based on AI's determined action
+    if (response.action === 'faq') {
+      // Continue conversation for more questions
+      const gather = twiml.gather({
+        input: 'speech',
+        action: '/voice/process',
+        method: 'POST',
+        speechTimeout: 4,
+        timeout: 8,
+        enhanced: true
+      });
+      
+      gather.say({ 
+        voice: 'Polly.Joanna' 
+      }, 'Is there anything else I can help you with?');
+      
+      twiml.redirect('/voice/goodbye');
+    } else if (response.action === 'appointment') {
+      twiml.redirect('/voice/appointment');
+    } else if (response.action === 'transfer') {
+      twiml.redirect('/voice/transfer');
+    } else if (response.action === 'message') {
+      twiml.redirect('/voice/message');
+    } else if (response.action === 'goodbye') {
+      twiml.redirect('/voice/goodbye');
+    } else {
+      // Continue conversation for unclear requests
+      const gather = twiml.gather({
+        input: 'speech',
+        action: '/voice/process',
+        method: 'POST',
+        speechTimeout: 4,
+        timeout: 8
+      });
+      
+      gather.say({ 
+        voice: 'Polly.Joanna' 
+      }, 'What else can I help you with today?');
+      
+      twiml.redirect('/voice/transfer');
+    }
+    
+    res.type('text/xml');
+    res.send(twiml.toString());
+  } catch (error) {
+    console.error('Error processing customer input:', error);
+    const twiml = new VoiceResponse();
+    twiml.say({
+      voice: 'Polly.Joanna'
+    }, "I'm having a bit of trouble understanding right now. Let me connect you with the owner.");
+    twiml.redirect('/voice/transfer');
+    res.type('text/xml');
+    res.send(twiml.toString());
+  }
+});
+
+// Transfer to shop owner
+router.post('/transfer', (req, res) => {
+  try {
+    const twiml = new VoiceResponse();
+    const ownerPhone = process.env.OWNER_PHONE_NUMBER;
+    
+    if (ownerPhone) {
+      twiml.say({
+        voice: 'Polly.Joanna'
+      }, 'Let me get the owner on the line for you. Just a moment!');
+      
+      twiml.dial({
+        timeout: 25,
+        action: '/voice/transfer-status',
+        method: 'POST'
+      }, ownerPhone);
+    } else {
+      twiml.say({
+        voice: 'Polly.Joanna'
+      }, "The owner isn't available right now. Would you like to leave a message?");
+      
+      twiml.redirect('/voice/message');
+    }
+    
+    res.type('text/xml');
+    res.send(twiml.toString());
+  } catch (error) {
+    console.error('Error in transfer handler:', error);
+    const twiml = new VoiceResponse();
+    twiml.say({
+      voice: 'Polly.Joanna'
+    }, "I'm having trouble with the transfer. Please try calling back.");
+    twiml.hangup();
+    res.type('text/xml');
+    res.send(twiml.toString());
+  }
+});
+
+// Goodbye message
+router.post('/goodbye', (req, res) => {
+  try {
+    const twiml = new VoiceResponse();
+    const shopName = process.env.SHOP_NAME || 'Auto Repair Shop';
+    
+    twiml.say({
+      voice: 'Polly.Joanna'
+    }, `Thanks so much for calling ${shopName}! Have a wonderful day and drive safe!`);
+    
     twiml.hangup();
     
     res.type('text/xml');
     res.send(twiml.toString());
   } catch (error) {
-    console.error('Error handling menu selection:', error);
+    console.error('Error in goodbye handler:', error);
     const twiml = new VoiceResponse();
-    twiml.say('Sorry, there was an error. Goodbye.');
     twiml.hangup();
     res.type('text/xml');
     res.send(twiml.toString());
