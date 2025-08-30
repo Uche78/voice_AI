@@ -22,7 +22,7 @@ router.post('/incoming', async (req, res) => {
     
     // Professional greeting with natural speech
     twiml.say({
-      voice: 'Polly.Salli',
+      voice: 'Google.en-US-Neural2-F',
       language: 'en-US'
     }, `Hi, this is ${shopName}. Sarah speaking, how can I help you today?`);
     
