@@ -24,7 +24,7 @@ router.post('/incoming', async (req, res) => {
     twiml.say({
       voice: 'Polly.Joanna',
       language: 'en-US'
-    }, `Hi there! You've reached ${shopName}. My name is Sarah, how can I help you today?`);
+    }, `Hi, this is ${shopName}. Sarah speaking, how can I help you today?`);
     
     // Gather customer speech input
     const gather = twiml.gather({
