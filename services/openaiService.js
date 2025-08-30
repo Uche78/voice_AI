@@ -21,77 +21,230 @@ constructor() {
   
   // Pre-generated responses for common questions
   this.commonResponses = new Map([
-    // [paste all the commonResponses data from my previous message]
-          // Hours questions
-      ['hours', {
-        action: 'faq',
-        message: "We're open Monday through Friday from 8 to 6, Saturday 9 to 4, and closed Sundays. Is there a particular day you were hoping to come in?",
-        confidence: 0.9
-      }],
-      ['open', {
-        action: 'faq', 
-        message: "We're open Monday through Friday from 8 to 6, Saturday 9 to 4, and closed Sundays. What day works best for you?",
-        confidence: 0.9
-      }],
-      ['close', {
-        action: 'faq',
-        message: "We close at 6 PM on weekdays, 4 PM on Saturday, and we're closed Sundays. Need to come in before closing?",
-        confidence: 0.9
-      }],
-      
-      // Services questions
-      ['services', {
-        action: 'faq',
-        message: "We do all kinds of automotive work - oil changes, brake repairs, tire services, engine diagnostics, transmission work, AC service, and general maintenance. What's going on with your car?",
-        confidence: 0.9
-      }],
-      ['oil change', {
-        action: 'faq',
-        message: "Absolutely! We do oil changes. Usually takes about 30 minutes. Would you like to schedule one?",
-        confidence: 0.9
-      }],
-      ['brakes', {
-        action: 'faq',
-        message: "Yes, we handle all brake work - pads, rotors, fluid, you name it. We can give you a free estimate. Want to set up an appointment?",
-        confidence: 0.9
-      }],
-      
-      // Location questions
-      ['location', {
-        action: 'faq',
-        message: "We're located on Main Street with easy parking available. Need specific directions?",
-        confidence: 0.9
-      }],
-      ['address', {
-        action: 'faq',
-        message: "We're on Main Street with easy parking. Would you like me to connect you with the owner for exact directions?",
-        confidence: 0.9
-      }],
-      
-      // Pricing questions
-      ['price', {
-        action: 'faq',
-        message: "Our prices are really competitive and we always give free estimates! What kind of work are you thinking about?",
-        confidence: 0.9
-      }],
-      ['cost', {
-        action: 'faq',
-        message: "We keep our prices fair and provide free estimates for most services. What can we help you with?",
-        confidence: 0.9
-      }],
-      
-      // Appointment requests
-      ['appointment', {
-        action: 'appointment',
-        message: "I'd love to help you schedule an appointment! What kind of service does your car need?",
-        confidence: 0.9
-      }],
-      ['schedule', {
-        action: 'appointment',
-        message: "Perfect! Let's get you scheduled. What's your name?",
-        confidence: 0.9
-      }]
-    ]);
+  // Hours questions
+  ['hours', {
+    action: 'faq',
+    message: "We're open Monday through Friday from 8 to 6, Saturday 9 to 4, and closed Sundays. Is there a particular day you were hoping to come in?",
+    confidence: 0.9
+  }],
+  ['open', {
+    action: 'faq', 
+    message: "We're open Monday through Friday from 8 to 6, Saturday 9 to 4, and closed Sundays. What day works best for you?",
+    confidence: 0.9
+  }],
+  ['close', {
+    action: 'faq',
+    message: "We close at 6 PM on weekdays, 4 PM on Saturday, and we're closed Sundays. Need to come in before closing?",
+    confidence: 0.9
+  }],
+  
+  // Services questions
+  ['services', {
+    action: 'faq',
+    message: "We do all kinds of automotive work - oil changes, brake repairs, tire services, engine diagnostics, transmission work, AC service, and general maintenance. What's going on with your car?",
+    confidence: 0.9
+  }],
+  ['oil change', {
+    action: 'faq',
+    message: "Absolutely! We do oil changes. Usually takes about 30 minutes. Would you like to schedule one?",
+    confidence: 0.9
+  }],
+  ['brakes', {
+    action: 'faq',
+    message: "Yes, we handle all brake work - pads, rotors, fluid, you name it. We can give you a free estimate. Want to set up an appointment?",
+    confidence: 0.9
+  }],
+  
+  // Location questions
+  ['location', {
+    action: 'faq',
+    message: "We're located on Main Street with easy parking available. Need specific directions?",
+    confidence: 0.9
+  }],
+  ['address', {
+    action: 'faq',
+    message: "We're on Main Street with easy parking. Would you like me to connect you with the owner for exact directions?",
+    confidence: 0.9
+  }],
+  
+  // Pricing questions
+  ['price', {
+    action: 'faq',
+    message: "Our prices are really competitive and we always give free estimates! What kind of work are you thinking about?",
+    confidence: 0.9
+  }],
+  ['cost', {
+    action: 'faq',
+    message: "We keep our prices fair and provide free estimates for most services. What can we help you with?",
+    confidence: 0.9
+  }],
+  ['estimate', {
+    action: 'faq',
+    message: "We'd be happy to give you an estimate! You'll need to bring the car in so we can take a proper look. When works for you?",
+    confidence: 0.9
+  }],
+  ['quote', {
+    action: 'faq',
+    message: "For an accurate quote, we'll need to see your car in person. Would you like to schedule a time to bring it in?",
+    confidence: 0.9
+  }],
+  
+  // Appointment requests
+  ['appointment', {
+    action: 'appointment',
+    message: "I'd love to help you schedule an appointment! What kind of service does your car need?",
+    confidence: 0.9
+  }],
+  ['schedule', {
+    action: 'appointment',
+    message: "Perfect! Let's get you scheduled. What's your name?",
+    confidence: 0.9
+  }],
+  
+  // Towing & Emergency
+  ['tow', {
+    action: 'transfer',
+    message: "We do provide towing service! Let me connect you with the owner to arrange that right away.",
+    confidence: 0.9
+  }],
+  ['broke down', {
+    action: 'transfer',
+    message: "Oh no! Let me get the owner on the line immediately to help with your breakdown.",
+    confidence: 0.9
+  }],
+  ['emergency', {
+    action: 'transfer',
+    message: "I'll get the owner right now to help with your emergency situation.",
+    confidence: 0.9
+  }],
+  ['stranded', {
+    action: 'transfer',
+    message: "Let me connect you with the owner immediately so we can get you help.",
+    confidence: 0.9
+  }],
+  
+  // Mechanic-specific requests
+  ['tony', {
+    action: 'transfer',
+    message: "Let me check if Tony's available and connect you with him.",
+    confidence: 0.9
+  }],
+  ['mike', {
+    action: 'transfer',
+    message: "I'll see if Mike is free to talk with you.",
+    confidence: 0.9
+  }],
+  ['mechanic', {
+    action: 'transfer',
+    message: "Let me connect you with one of our mechanics.",
+    confidence: 0.9
+  }],
+  
+  // Brand-specific questions
+  ['bmw', {
+    action: 'faq',
+    message: "Yes, we work on all makes including BMW. Our mechanics are experienced with European vehicles. What's going on with your BMW?",
+    confidence: 0.9
+  }],
+  ['honda', {
+    action: 'faq',
+    message: "Absolutely! We service Honda vehicles all the time. What's your Honda needing?",
+    confidence: 0.9
+  }],
+  ['toyota', {
+    action: 'faq',
+    message: "Yes, we work on Toyota vehicles regularly. What can we help you with?",
+    confidence: 0.9
+  }],
+  ['ford', {
+    action: 'faq',
+    message: "We service Ford vehicles. What's your Ford needing?",
+    confidence: 0.9
+  }],
+  ['european', {
+    action: 'faq',
+    message: "Yes, we work on European cars - BMW, Mercedes, Audi, Volkswagen, you name it. What's going on with your car?",
+    confidence: 0.9
+  }],
+  
+  // Problem descriptions
+  ['squeaking', {
+    action: 'faq',
+    message: "Squeaking often means brake pads, but we'd need to take a look to be sure. Want to schedule an inspection?",
+    confidence: 0.8
+  }],
+  ['noise', {
+    action: 'faq',
+    message: "Car noises can mean different things depending on where they're coming from. We'd need to hear it in person. Can you bring it in?",
+    confidence: 0.8
+  }],
+  ['check engine', {
+    action: 'faq',
+    message: "Check engine lights need a diagnostic scan to see what's wrong. We can run that for you. When can you come in?",
+    confidence: 0.8
+  }],
+  ['overheating', {
+    action: 'transfer',
+    message: "Overheating can be serious. Let me get the owner to talk with you about this right away.",
+    confidence: 0.9
+  }],
+  
+  // Appointment management
+  ['running late', {
+    action: 'transfer',
+    message: "No worries at all! Let me connect you with the owner so they can update your appointment time.",
+    confidence: 0.9
+  }],
+  ['reschedule', {
+    action: 'transfer', 
+    message: "I can help with that! Let me get the owner to check the schedule and find you a new time.",
+    confidence: 0.9
+  }],
+  ['cancel', {
+    action: 'transfer',
+    message: "No problem. Let me connect you with the owner to cancel your appointment.",
+    confidence: 0.9
+  }],
+  ['confirm appointment', {
+    action: 'transfer',
+    message: "Let me connect you with the owner to confirm your appointment details.",
+    confidence: 0.9
+  }],
+  
+  // Follow-up calls
+  ['is it ready', {
+    action: 'transfer',
+    message: "Let me connect you with the owner to check on your car's status.",
+    confidence: 0.9
+  }],
+  ['called about', {
+    action: 'transfer',
+    message: "Perfect! Let me get the owner who called you.",
+    confidence: 0.9
+  }],
+  ['dropped off', {
+    action: 'transfer',
+    message: "I'll connect you with the owner to check on your car.",
+    confidence: 0.9
+  }],
+  
+  // Owner/staff requests
+  ['owner', {
+    action: 'transfer',
+    message: "Of course! Let me get the owner for you.",
+    confidence: 0.9
+  }],
+  ['manager', {
+    action: 'transfer',
+    message: "I'll connect you with the owner who manages the shop.",
+    confidence: 0.9
+  }],
+  ['speak to someone', {
+    action: 'transfer',
+    message: "Absolutely! Let me get the owner on the line for you.",
+    confidence: 0.9
+  }]
+]);
   }
 
   async processCustomerInput(callerNumber, customerInput, callContext = {}) {
