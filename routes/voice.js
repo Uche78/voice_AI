@@ -22,7 +22,7 @@ router.post('/incoming', async (req, res) => {
     
     // Professional greeting with natural speech
     twiml.say({
-      voice: 'Polly.Joanna',
+      voice: 'Polly.Salli',
       language: 'en-US'
     }, `Hi, this is ${shopName}. Sarah speaking, how can I help you today?`);
     
@@ -40,7 +40,7 @@ router.post('/incoming', async (req, res) => {
     
     // Fallback if no input
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "I didn't catch that. Let me get the owner on the line for you.");
     
     twiml.redirect('/voice/transfer');
@@ -51,7 +51,7 @@ router.post('/incoming', async (req, res) => {
     console.error('Error in incoming call handler:', error);
     const twiml = new VoiceResponse();
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "Sorry, I'm having some technical trouble. Please try calling back in a moment.");
     twiml.hangup();
     res.type('text/xml');
@@ -73,7 +73,7 @@ router.post('/process', async (req, res) => {
     // Low confidence - ask for clarification
     if (confidence < 0.7) {
       twiml.say({
-        voice: 'Polly.Joanna'
+        voice: 'Polly.Salli'
       }, "Sorry, I didn't quite catch that. Could you tell me again how I can help you?");
       
       const gather = twiml.gather({
@@ -95,7 +95,7 @@ router.post('/process', async (req, res) => {
     const response = await openaiService.processCustomerInput(callerNumber, speechResult);
     
     twiml.say({ 
-      voice: 'Polly.Joanna' 
+      voice: 'Polly.Salli' 
     }, response.message);
     
     // Route based on AI's determined action
@@ -111,7 +111,7 @@ router.post('/process', async (req, res) => {
       });
       
       gather.say({ 
-        voice: 'Polly.Joanna' 
+        voice: 'Polly.Salli' 
       }, 'Is there anything else I can help you with?');
       
       twiml.redirect('/voice/goodbye');
@@ -134,7 +134,7 @@ router.post('/process', async (req, res) => {
       });
       
       gather.say({ 
-        voice: 'Polly.Joanna' 
+        voice: 'Polly.Salli' 
       }, 'What else can I help you with today?');
       
       twiml.redirect('/voice/transfer');
@@ -146,7 +146,7 @@ router.post('/process', async (req, res) => {
     console.error('Error processing customer input:', error);
     const twiml = new VoiceResponse();
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "I'm having a bit of trouble understanding right now. Let me connect you with the owner.");
     twiml.redirect('/voice/transfer');
     res.type('text/xml');
@@ -162,7 +162,7 @@ router.post('/transfer', (req, res) => {
     
     if (ownerPhone) {
       twiml.say({
-        voice: 'Polly.Joanna'
+        voice: 'Polly.Salli'
       }, 'Let me get the owner on the line for you. Just a moment!');
       
       twiml.dial({
@@ -172,7 +172,7 @@ router.post('/transfer', (req, res) => {
       }, ownerPhone);
     } else {
       twiml.say({
-        voice: 'Polly.Joanna'
+        voice: 'Polly.Salli'
       }, "The owner isn't available right now. Would you like to leave a message?");
       
       twiml.redirect('/voice/message');
@@ -184,7 +184,7 @@ router.post('/transfer', (req, res) => {
     console.error('Error in transfer handler:', error);
     const twiml = new VoiceResponse();
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "I'm having trouble with the transfer. Please try calling back.");
     twiml.hangup();
     res.type('text/xml');
@@ -199,7 +199,7 @@ router.post('/goodbye', (req, res) => {
     const shopName = process.env.SHOP_NAME || 'Auto Repair Shop';
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, `Thanks so much for calling ${shopName}! Have a wonderful day and drive safe!`);
     
     twiml.hangup();
@@ -228,7 +228,7 @@ router.post('/appointment', async (req, res) => {
     });
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "I'd love to help you schedule an appointment! What's your name?");
     
     const gather = twiml.gather({
@@ -241,7 +241,7 @@ router.post('/appointment', async (req, res) => {
     });
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "I didn't catch your name clearly. Let me get the owner to help you schedule.");
     
     twiml.redirect('/voice/transfer');
@@ -268,7 +268,7 @@ router.post('/appointment-name', async (req, res) => {
     
     if (customerName.length < 2 || confidence < 0.6) {
       twiml.say({
-        voice: 'Polly.Joanna'
+        voice: 'Polly.Salli'
       }, "I didn't get your name clearly. Let me connect you with the owner to get you scheduled.");
       
       twiml.redirect('/voice/transfer');
@@ -278,7 +278,7 @@ router.post('/appointment-name', async (req, res) => {
     }
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, `Perfect, ${customerName}! What kind of car do you have and what service do you need?`);
     
     const gather = twiml.gather({
@@ -299,7 +299,7 @@ router.post('/appointment-name', async (req, res) => {
     gather.action(`/voice/appointment-details?session=${sessionData}`);
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "I need a bit more detail. Let me get the owner to help you out.");
     
     twiml.redirect('/voice/transfer');
@@ -335,7 +335,7 @@ router.post('/appointment-details', async (req, res) => {
     
     if (serviceDetails.length < 5 || confidence < 0.6) {
       twiml.say({
-        voice: 'Polly.Joanna'
+        voice: 'Polly.Salli'
       }, "I need a bit more info about what you need done. Let me get the owner for you.");
       
       twiml.redirect('/voice/transfer');
@@ -349,7 +349,7 @@ router.post('/appointment-details', async (req, res) => {
     const availabilityMessage = openaiService.formatAvailableSlots();
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, `Got it! So ${customerInfo.name}, you need help with ${serviceDetails}. ${availabilityMessage}`);
     
     const gather = twiml.gather({
@@ -427,7 +427,7 @@ router.post('/appointment-confirm', async (req, res) => {
     }
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, `Perfect! I've got you scheduled for ${selectedSlot.date} at ${selectedSlot.time}. You'll get a text confirmation, and if anything changes, we'll give you a call. Thanks for choosing us!`);
     
     // Log the appointment
@@ -461,7 +461,7 @@ router.post('/appointment-confirm', async (req, res) => {
     console.error('Error confirming appointment:', error);
     const twiml = new VoiceResponse();
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "I'm having trouble getting that scheduled. Let me connect you with the owner to get this sorted out.");
     twiml.redirect('/voice/transfer');
     res.type('text/xml');
@@ -484,7 +484,7 @@ router.post('/transfer-status', async (req, res) => {
     
     if (dialStatus === 'no-answer' || dialStatus === 'failed' || dialStatus === 'busy') {
       twiml.say({
-        voice: 'Polly.Joanna'
+        voice: 'Polly.Salli'
       }, "The owner is tied up right now. Would you like to leave a message and I'll make sure they get back to you?");
       
       twiml.redirect('/voice/message');
@@ -516,7 +516,7 @@ router.post('/message', async (req, res) => {
     });
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "Please leave your name, phone number, and your message after the beep. Press any key when you're finished.");
     
     twiml.record({
@@ -529,7 +529,7 @@ router.post('/message', async (req, res) => {
     });
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "I didn't get your message. Feel free to call back anytime.");
     
     twiml.hangup();
@@ -540,7 +540,7 @@ router.post('/message', async (req, res) => {
     console.error('Error in message handler:', error);
     const twiml = new VoiceResponse();
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "Sorry, I can't take a message right now. Please try calling back.");
     twiml.hangup();
     res.type('text/xml');
@@ -560,7 +560,7 @@ router.post('/message-received', async (req, res) => {
     const twiml = new VoiceResponse();
     
     twiml.say({
-      voice: 'Polly.Joanna'
+      voice: 'Polly.Salli'
     }, "Got it! The owner will get your message and call you back soon. Thanks for calling!");
     
     twiml.hangup();
