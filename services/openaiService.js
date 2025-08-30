@@ -294,23 +294,38 @@ Always be helpful and try to move the conversation forward naturally.`;
   checkCachedResponses(input) {
   const lowerInput = input.toLowerCase();
   
-  // Check each cached response for keyword matches
-  for (const [keyword, response] of this.commonResponses) {
-    if (lowerInput.includes(keyword)) {
-      return response;
+  // Check for appointment intent FIRST (higher priority)
+  if (lowerInput.includes('schedule') || lowerInput.includes('appointment') || 
+      lowerInput.includes('book') || lowerInput.includes('need') && 
+      (lowerInput.includes('oil') || lowerInput.includes('brake') || lowerInput.includes('service'))) {
+    return {
+      action: 'appointment',
+      message: "I'd love to help you schedule that! What's your name?",
+      confidence: 0.9
+    };
+  }
+  
+  // Then check for pure FAQ questions (only when NOT requesting service)
+  if (!lowerInput.includes('schedule') && !lowerInput.includes('appointment') && 
+      !lowerInput.includes('book') && !lowerInput.includes('need')) {
+    
+    for (const [keyword, response] of this.commonResponses) {
+      if (lowerInput.includes(keyword)) {
+        return response;
+      }
+    }
+    
+    // Check for compound questions
+    if (lowerInput.includes('hour') || lowerInput.includes('open') || lowerInput.includes('close')) {
+      return this.commonResponses.get('hours');
+    }
+    
+    if (lowerInput.includes('service') || lowerInput.includes('repair') || lowerInput.includes('fix')) {
+      return this.commonResponses.get('services');
     }
   }
   
-  // Check for compound questions
-  if (lowerInput.includes('hour') || lowerInput.includes('open') || lowerInput.includes('close')) {
-    return this.commonResponses.get('hours');
-  }
-  
-  if (lowerInput.includes('service') || lowerInput.includes('repair') || lowerInput.includes('fix')) {
-    return this.commonResponses.get('services');
-  }
-  
-  return null; // No cached response found
+  return null;
  }
 
 }
