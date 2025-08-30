@@ -42,10 +42,10 @@ class OpenAIService {
       ];
 
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-40-mini',
         messages: messages,
-        max_tokens: 200,
-        temperature: 0.7,
+        max_tokens: 100,
+        temperature: 0.3,
         functions: [
           {
             name: 'determine_action',
