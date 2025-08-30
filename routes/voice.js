@@ -31,8 +31,8 @@ router.post('/incoming', async (req, res) => {
       input: 'speech',
       action: '/voice/process',
       method: 'POST',
-      speechTimeout: 4,
-      timeout: 10,
+      speechTimeout: 2,
+      timeout: 8,
       language: 'en-US',
       enhanced: true // Better speech recognition
     });
