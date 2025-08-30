@@ -24,7 +24,7 @@ router.post('/incoming', async (req, res) => {
     twiml.say({
       voice: 'Polly.Joanna',
       language: 'en-US'
-    }, `Hi there! You've reached ${shopName}. I'm Sarah, your virtual assistant. How can I help you today?`);
+    }, `Hi there! You've reached ${shopName}. My name is Sarah, how can I help you today?`);
     
     // Gather customer speech input
     const gather = twiml.gather({
@@ -37,9 +37,6 @@ router.post('/incoming', async (req, res) => {
       enhanced: true // Better speech recognition
     });
     
-    gather.say({
-      voice: 'Polly.Joanna'
-    }, 'I can help with our hours, services, appointments, or connect you with the owner.');
     
     // Fallback if no input
     twiml.say({
