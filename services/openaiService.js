@@ -42,7 +42,7 @@ class OpenAIService {
       ];
 
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-40-mini',
+        model: 'gpt-4o-mini',
         messages: messages,
         max_tokens: 100,
         temperature: 0.3,
