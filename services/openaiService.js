@@ -16,12 +16,93 @@ function getOpenAIClient() {
 }
 
 class OpenAIService {
-  constructor() {
-    this.conversationHistory = new Map(); // Store conversation context per caller
+constructor() {
+  this.conversationHistory = new Map();
+  
+  // Pre-generated responses for common questions
+  this.commonResponses = new Map([
+    // [paste all the commonResponses data from my previous message]
+          // Hours questions
+      ['hours', {
+        action: 'faq',
+        message: "We're open Monday through Friday from 8 to 6, Saturday 9 to 4, and closed Sundays. Is there a particular day you were hoping to come in?",
+        confidence: 0.9
+      }],
+      ['open', {
+        action: 'faq', 
+        message: "We're open Monday through Friday from 8 to 6, Saturday 9 to 4, and closed Sundays. What day works best for you?",
+        confidence: 0.9
+      }],
+      ['close', {
+        action: 'faq',
+        message: "We close at 6 PM on weekdays, 4 PM on Saturday, and we're closed Sundays. Need to come in before closing?",
+        confidence: 0.9
+      }],
+      
+      // Services questions
+      ['services', {
+        action: 'faq',
+        message: "We do all kinds of automotive work - oil changes, brake repairs, tire services, engine diagnostics, transmission work, AC service, and general maintenance. What's going on with your car?",
+        confidence: 0.9
+      }],
+      ['oil change', {
+        action: 'faq',
+        message: "Absolutely! We do oil changes. Usually takes about 30 minutes. Would you like to schedule one?",
+        confidence: 0.9
+      }],
+      ['brakes', {
+        action: 'faq',
+        message: "Yes, we handle all brake work - pads, rotors, fluid, you name it. We can give you a free estimate. Want to set up an appointment?",
+        confidence: 0.9
+      }],
+      
+      // Location questions
+      ['location', {
+        action: 'faq',
+        message: "We're located on Main Street with easy parking available. Need specific directions?",
+        confidence: 0.9
+      }],
+      ['address', {
+        action: 'faq',
+        message: "We're on Main Street with easy parking. Would you like me to connect you with the owner for exact directions?",
+        confidence: 0.9
+      }],
+      
+      // Pricing questions
+      ['price', {
+        action: 'faq',
+        message: "Our prices are really competitive and we always give free estimates! What kind of work are you thinking about?",
+        confidence: 0.9
+      }],
+      ['cost', {
+        action: 'faq',
+        message: "We keep our prices fair and provide free estimates for most services. What can we help you with?",
+        confidence: 0.9
+      }],
+      
+      // Appointment requests
+      ['appointment', {
+        action: 'appointment',
+        message: "I'd love to help you schedule an appointment! What kind of service does your car need?",
+        confidence: 0.9
+      }],
+      ['schedule', {
+        action: 'appointment',
+        message: "Perfect! Let's get you scheduled. What's your name?",
+        confidence: 0.9
+      }]
+    ]);
   }
 
   async processCustomerInput(callerNumber, customerInput, callContext = {}) {
     try {
+      // Add this cache check at the very beginning:
+      const cachedResponse = this.checkCachedResponses(customerInput);
+      if (cachedResponse) {
+      console.log('Using cached response for:', customerInput);
+      return cachedResponse;
+      }
+      
       // Get or create conversation history for this caller
       let history = this.conversationHistory.get(callerNumber) || [];
       
@@ -209,6 +290,29 @@ Always be helpful and try to move the conversation forward naturally.`;
     
     return `I have some openings coming up. Tomorrow ${tomorrow.dayName} I have ${tomorrow.time} or ${slots[1].time}, and ${dayAfter.dayName} I have ${dayAfter.time} or ${slots[3].time}. What works better for you?`;
   }
+
+  checkCachedResponses(input) {
+  const lowerInput = input.toLowerCase();
+  
+  // Check each cached response for keyword matches
+  for (const [keyword, response] of this.commonResponses) {
+    if (lowerInput.includes(keyword)) {
+      return response;
+    }
+  }
+  
+  // Check for compound questions
+  if (lowerInput.includes('hour') || lowerInput.includes('open') || lowerInput.includes('close')) {
+    return this.commonResponses.get('hours');
+  }
+  
+  if (lowerInput.includes('service') || lowerInput.includes('repair') || lowerInput.includes('fix')) {
+    return this.commonResponses.get('services');
+  }
+  
+  return null; // No cached response found
+ }
+
 }
 
 module.exports = new OpenAIService();
