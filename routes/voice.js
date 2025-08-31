@@ -22,7 +22,7 @@ router.post('/incoming', async (req, res) => {
     
     // Professional greeting with natural speech
     twiml.say({
-      voice: 'Google.en-US-Neural2-F',
+      voice: 'Polly.Salli',
       language: 'en-US'
     }, `Hi, this is ${shopName}. Sarah speaking, how can I help you today?`);
     
@@ -31,7 +31,7 @@ router.post('/incoming', async (req, res) => {
       input: 'speech',
       action: '/voice/process',
       method: 'POST',
-      speechTimeout: 2,
+      speechTimeout: 3,
       timeout: 8,
       language: 'en-US',
       enhanced: true // Better speech recognition
@@ -80,8 +80,8 @@ router.post('/process', async (req, res) => {
         input: 'speech',
         action: '/voice/process',
         method: 'POST',
-        speechTimeout: 4,
-        timeout: 10,
+        speechTimeout: 3,
+        timeout: 8,
         enhanced: true
       });
       
@@ -98,21 +98,21 @@ router.post('/process', async (req, res) => {
       voice: 'Polly.Salli' 
     }, response.message);
     
-    // Route based on AI's determined action
     if (response.action === 'faq') {
-      // Continue conversation for more questions
-      const gather = twiml.gather({
-        input: 'speech',
-        action: '/voice/process',
-        method: 'POST',
-        speechTimeout: 4,
-        timeout: 8,
-        enhanced: true
-      });
-      
-      gather.say({ 
-        voice: 'Polly.Salli' 
-      }, 'Is there anything else I can help you with?');
+  twiml.say({ voice: 'Polly.Salli' }, response.message);
+  
+  // Continue conversation instead of ending
+  const gather = twiml.gather({
+    input: 'speech',
+    action: '/voice/process',
+    method: 'POST',
+    speechTimeout: 3,
+    timeout: 8,
+    enhanced: true
+  });
+  
+  // Only redirect to goodbye if customer indicates they're done
+  twiml.redirect('/voice/goodbye');
       
       twiml.redirect('/voice/goodbye');
     } else if (response.action === 'appointment') {
