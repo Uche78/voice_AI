@@ -18,6 +18,9 @@ function getOpenAIClient() {
 class OpenAIService {
 constructor() {
   this.conversationHistory = new Map();
+
+  // Enhanced context tracking per caller
+    this.callContext = new Map();
   
   // Pre-generated responses for common questions
 this.commonResponses = new Map([
@@ -214,25 +217,94 @@ this.commonResponses = new Map([
   
   }
 
-  async processCustomerInput(callerNumber, customerInput, callContext = {}) {
+  extractInfoFromInput(input, context) {
+  const lowerInput = input.toLowerCase();
+  
+  // Extract name if mentioned
+  const namePatterns = [
+    /my name is (\w+)/i,
+    /i'm (\w+)/i,
+    /this is (\w+)/i,
+    /(\w+) speaking/i
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = input.match(pattern);
+    if (match && match[1] && !context.customerName) {
+      context.customerName = match[1];
+      break;
+    }
+  }
+  
+  // Extract vehicle information
+  const carBrands = ['honda', 'toyota', 'ford', 'chevy', 'bmw', 'mercedes', 'nissan', 'hyundai'];
+  for (const brand of carBrands) {
+    if (lowerInput.includes(brand)) {
+      context.vehicleInfo = brand;
+      break;
+    }
+  }
+  
+  // Track service requests
+  const services = ['oil change', 'tune up', 'brakes', 'maintenance'];
+  for (const service of services) {
+    if (lowerInput.includes(service)) {
+      context.serviceRequested = service;
+      break;
+    }
+  }
+  
+  // Track if asking for owner
+  if (lowerInput.includes('owner') || lowerInput.includes('manager')) {
+    context.hasAskedForOwner = true;
+  }
+  
+  // Track quote requests
+  if (lowerInput.includes('quote') || lowerInput.includes('price') || lowerInput.includes('cost')) {
+    if (context.serviceRequested && !context.quotesRequested.includes(context.serviceRequested)) {
+      context.quotesRequested.push(context.serviceRequested);
+    }
+  }
+}
+
+async processCustomerInput(callerNumber, customerInput, callContext = {}) {
     try {
-      // Add this cache check at the very beginning:
+      // Get or create context for this caller
+      let context = this.callContext.get(callerNumber) || {
+        customerName: null,
+        vehicleInfo: null,
+        serviceRequested: null,
+        appointmentInProgress: false,
+        quotesRequested: [],
+        lastTopic: null,
+        callStartTime: new Date(),
+        hasAskedForOwner: false
+      };
+
+      // Check cached responses first
       const cachedResponse = this.checkCachedResponses(customerInput);
       if (cachedResponse) {
-      console.log('Using cached response for:', customerInput);
-      return cachedResponse;
+        // Update context based on cached response
+        this.extractInfoFromInput(customerInput, context);
+        this.updateContextFromResponse(context, customerInput, cachedResponse);
+        this.callContext.set(callerNumber, context);
+        
+        console.log('Using cached response for:', customerInput);
+        return cachedResponse;
       }
-      
-      // Get or create conversation history for this caller
+
+      // Extract information from customer input
+      this.extractInfoFromInput(customerInput, context);
+
+      // Get conversation history
       let history = this.conversationHistory.get(callerNumber) || [];
       
-      // Build the system prompt with business information
-      const systemPrompt = this.buildSystemPrompt();
+      // Build context-aware system prompt
+      const systemPrompt = this.buildContextAwareSystemPrompt(context);
       
       // Add customer input to history
       history.push({ role: 'user', content: customerInput });
       
-      // Keep history manageable (last 10 exchanges)
       if (history.length > 20) {
         history = history.slice(-20);
       }
@@ -245,12 +317,12 @@ this.commonResponses = new Map([
       const completion = await getOpenAIClient().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: messages,
-        max_tokens: 100,
+        max_tokens: 150,
         temperature: 0.3,
         functions: [
           {
             name: 'determine_action',
-            description: 'Determine what action to take based on customer request',
+            description: 'Determine what action to take based on customer request and context',
             parameters: {
               type: 'object',
               properties: {
@@ -261,7 +333,7 @@ this.commonResponses = new Map([
                 },
                 response: {
                   type: 'string',
-                  description: 'Natural, conversational response to the customer'
+                  description: 'Natural, conversational response that references previous conversation context when appropriate'
                 },
                 confidence: {
                   type: 'number',
@@ -278,7 +350,11 @@ this.commonResponses = new Map([
       const functionCall = completion.choices[0].message.function_call;
       const result = JSON.parse(functionCall.arguments);
       
-      // Add AI response to history
+      // Update context based on AI response
+      this.updateContextFromResponse(context, customerInput, result);
+      
+      // Store updated context and history
+      this.callContext.set(callerNumber, context);
       history.push({ role: 'assistant', content: result.response });
       this.conversationHistory.set(callerNumber, history);
       
@@ -290,48 +366,74 @@ this.commonResponses = new Map([
 
     } catch (error) {
       console.error('OpenAI API error:', error);
-      
-      // Fallback to basic processing if OpenAI fails
       const fallbackResponse = this.getFallbackResponse(customerInput);
       return fallbackResponse;
     }
   }
 
-  buildSystemPrompt() {
-    const shopName = process.env.SHOP_NAME || 'Auto Repair Shop';
-    
-    return `You are a friendly, professional receptionist for ${shopName}. You sound warm, helpful, and conversational - like talking to a real person, not a robot.
+buildContextAwareSystemPrompt(context) {
+  const shopName = process.env.SHOP_NAME || 'Auto Repair Shop';
+  
+  let contextInfo = '';
+  if (context.customerName) {
+    contextInfo += `Customer's name: ${context.customerName}. Use their name naturally in conversation.\n`;
+  }
+  if (context.vehicleInfo) {
+    contextInfo += `Customer's vehicle: ${context.vehicleInfo}. Reference this when relevant.\n`;
+  }
+  if (context.serviceRequested) {
+    contextInfo += `Service requested: ${context.serviceRequested}. Keep this in mind for follow-ups.\n`;
+  }
+  if (context.hasAskedForOwner) {
+    contextInfo += `Customer has asked for the owner. Be prepared to transfer if needed again.\n`;
+  }
+  
+  return `You are Sarah, a friendly professional receptionist for ${shopName}.
 
-BUSINESS INFORMATION:
-- Hours: ${businessInfo.hours.weekday}, ${businessInfo.hours.saturday}, ${businessInfo.hours.sunday}
-- Services: ${businessInfo.services.join(', ')}
-- Location: ${businessInfo.location}
-- Pricing: ${businessInfo.pricing}
+CONVERSATION CONTEXT:
+${contextInfo}
+
+SERVICES WE OFFER:
+- Oil Changes (45 minutes)
+- Tune Ups 
+- Brake Services
+- General Maintenance
 
 CONVERSATION STYLE:
-- Sound natural and conversational, like a real receptionist
-- Use casual, friendly language ("Oh sure!", "Absolutely!", "Let me help you with that!")
-- Ask follow-up questions to be helpful
-- Show genuine interest in helping the customer
-- Keep responses concise but warm
+- Reference previous parts of our conversation naturally
+- Use the customer's name when you know it
+- Remember what services they've asked about
+- Always ask relevant follow-up questions after answering
+- Show genuine interest in their car's condition
+- Keep responses concise but warm and personal
+- Keep conversations flowing rather than just answering and stopping
 
-ACTIONS TO TAKE:
-- "faq": Answer questions about hours, services, location, pricing naturally
-- "appointment": Customer wants to schedule service
-- "transfer": Customer wants to speak with owner/manager or has complex issues
-- "message": Customer wants to leave a message
-- "goodbye": Customer is ending the conversation
-- "clarify": Need more information to help properly
+FOLLOW-UP EXAMPLES:
+- After oil change info: "How's your car been running? Any unusual noises?"
+- After brake info: "When did you first notice the issue?"
+- After tune-up info: "What's your car's mileage? Any performance issues?"
 
-EXAMPLES OF NATURAL RESPONSES:
-Instead of: "Our business hours are Monday through Friday, 8 AM to 6 PM"
-Say: "Oh sure! We're open Monday through Friday from 8 to 6, Saturday 9 to 4, and closed Sundays. Is there a particular day you were hoping to come in?"
+If you know the customer's name and vehicle, use that information naturally. 
+If they've mentioned a service before, reference it appropriately.
+Always sound like you're having a genuine conversation, not starting fresh each time.`;
+}
 
-Instead of: "We offer oil changes, brake repair, and tire rotation"
-Say: "Absolutely! We do all kinds of work - oil changes, brake repairs, tire stuff, engine diagnostics, you name it. What's going on with your car?"
-
-Always be helpful and try to move the conversation forward naturally.`;
+updateContextFromResponse(context, input, response) {
+  // Update last topic
+  context.lastTopic = response.action;
+  
+  // Track appointment progress
+  if (response.action === 'appointment') {
+    context.appointmentInProgress = true;
   }
+  
+  // Clear context after call ends
+  if (response.action === 'goodbye' || response.action === 'hangup') {
+    // Keep some info but reset conversation state
+    context.appointmentInProgress = false;
+    context.lastTopic = null;
+  }
+}
 
   getFallbackResponse(input) {
     const lowerInput = input.toLowerCase();
