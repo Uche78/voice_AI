@@ -79,8 +79,36 @@ async function sendGeneralNotification(notificationText) {
   }
 }
 
+async function sendOwnerUnavailableNotification(callerData) {
+  try {
+    const shopName = process.env.SHOP_NAME || 'Auto Repair Shop';
+    
+    const message = `📞 CALLBACK REQUEST - ${shopName}
+
+Customer asking for owner:
+Name: ${callerData.name || 'Not provided'}
+Phone: ${callerData.phone}
+Time: ${new Date().toLocaleString()}
+
+Please call them back when available.`;
+
+    await client.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: process.env.OWNER_PHONE_NUMBER
+    });
+    
+    console.log('Owner unavailable notification sent');
+    return true;
+  } catch (error) {
+    console.error('Error sending owner unavailable SMS:', error);
+    return false;
+  }
+}
+
 module.exports = {
   sendAppointmentNotification,
   sendVoiceMessageNotification,
-  sendGeneralNotification
+  sendGeneralNotification,
+  sendOwnerUnavailableNotification
 };
