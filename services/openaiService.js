@@ -20,7 +20,7 @@ constructor() {
   this.conversationHistory = new Map();
   
   // Pre-generated responses for common questions
-  this.commonResponses = new Map([
+this.commonResponses = new Map([
   // Hours questions
   ['hours', {
     action: 'faq',
@@ -89,15 +89,20 @@ constructor() {
     confidence: 0.9
   }],
   
-  // Appointment requests
+  // Appointment booking
   ['appointment', {
     action: 'appointment',
-    message: "I'd love to help you schedule an appointment! What kind of service does your car need?",
+    message: "I'd be happy to help schedule your appointment! What service do you need?",
     confidence: 0.9
   }],
   ['schedule', {
     action: 'appointment',
-    message: "Perfect! Let's get you scheduled. What's your name?",
+    message: "Perfect! Let's get you scheduled. What's your name and what service do you need?",
+    confidence: 0.9
+  }],
+  ['book', {
+    action: 'appointment',
+    message: "I can help you book that! What service are you looking to schedule?",
     confidence: 0.9
   }],
   
@@ -120,50 +125,6 @@ constructor() {
   ['stranded', {
     action: 'transfer',
     message: "Let me connect you with the owner immediately so we can get you help.",
-    confidence: 0.9
-  }],
-  
-  // Mechanic-specific requests
-  ['tony', {
-    action: 'transfer',
-    message: "Let me check if Tony's available and connect you with him.",
-    confidence: 0.9
-  }],
-  ['mike', {
-    action: 'transfer',
-    message: "I'll see if Mike is free to talk with you.",
-    confidence: 0.9
-  }],
-  ['mechanic', {
-    action: 'transfer',
-    message: "Let me connect you with one of our mechanics.",
-    confidence: 0.9
-  }],
-  
-  // Brand-specific questions
-  ['bmw', {
-    action: 'faq',
-    message: "Yes, we work on all makes including BMW. Our mechanics are experienced with European vehicles. What's going on with your BMW?",
-    confidence: 0.9
-  }],
-  ['honda', {
-    action: 'faq',
-    message: "Absolutely! We service Honda vehicles all the time. What's your Honda needing?",
-    confidence: 0.9
-  }],
-  ['toyota', {
-    action: 'faq',
-    message: "Yes, we work on Toyota vehicles regularly. What can we help you with?",
-    confidence: 0.9
-  }],
-  ['ford', {
-    action: 'faq',
-    message: "We service Ford vehicles. What's your Ford needing?",
-    confidence: 0.9
-  }],
-  ['european', {
-    action: 'faq',
-    message: "Yes, we work on European cars - BMW, Mercedes, Audi, Volkswagen, you name it. What's going on with your car?",
     confidence: 0.9
   }],
   
@@ -234,6 +195,11 @@ constructor() {
     message: "Of course! Let me get the owner for you.",
     confidence: 0.9
   }],
+  ['speak to owner', {
+    action: 'transfer',
+    message: "Sure thing! I'll connect you with the owner.",
+    confidence: 0.95
+  }],
   ['manager', {
     action: 'transfer',
     message: "I'll connect you with the owner who manages the shop.",
@@ -245,6 +211,7 @@ constructor() {
     confidence: 0.9
   }]
 ]);
+  
   }
 
   async processCustomerInput(callerNumber, customerInput, callContext = {}) {
