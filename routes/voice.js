@@ -116,7 +116,17 @@ router.post('/process', async (req, res) => {
       
       twiml.redirect('/voice/goodbye');
     } else if (response.action === 'appointment') {
-      twiml.redirect('/voice/appointment');
+  // Go directly to name collection instead of redirecting
+  const gather = twiml.gather({
+    input: 'speech',
+    action: '/voice/appointment-name',
+    method: 'POST',
+    speechTimeout: 4,
+    timeout: 10,
+    enhanced: true
+  });
+  
+  twiml.redirect('/voice/transfer');
     } else if (response.action === 'transfer') {
       twiml.redirect('/voice/transfer');
     } else if (response.action === 'message') {
