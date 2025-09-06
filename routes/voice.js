@@ -374,32 +374,6 @@ if (sessionParam) {
 
 const twiml = new VoiceResponse();
 
-// Get available time slots
-const availableSlots = openaiService.getAvailableTimeSlots();
-const availabilityMessage = openaiService.formatAvailableSlots();
-
-twiml.say({
-  voice: 'Polly.Salli'
-}, `Got it! So ${customerInfo.name}, you need help with ${serviceDetails}. ${availabilityMessage}`);
-
-const gather = twiml.gather({
-  input: 'speech',
-  action: '/voice/appointment-confirm',
-  method: 'POST',
-  speechTimeout: 4,
-  timeout: 12,
-  enhanced: true
-});
-
-const finalSessionData = encodeURIComponent(JSON.stringify({
-  ...customerInfo,
-  service: serviceDetails,
-  availableSlots: availableSlots
-}));
-
-gather.action(`/voice/appointment-confirm?session=${finalSessionData}`);
-
-twiml.redirect('/voice/transfer');
     
     // Get available time slots
     const availableSlots = openaiService.getAvailableTimeSlots();
