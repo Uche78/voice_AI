@@ -291,22 +291,20 @@ router.post('/appointment-name', async (req, res) => {
       voice: 'Polly.Salli'
     }, `Perfect, ${customerName}! What kind of car do you have and what service do you need?`);
     
-    const gather = twiml.gather({
-      input: 'speech',
-      action: '/voice/appointment-details',
-      method: 'POST',
-      speechTimeout: 6,
-      timeout: 15,
-      enhanced: true
-    });
-    
     // Store customer info in session (using query params)
-    const sessionData = encodeURIComponent(JSON.stringify({
-      name: customerName,
-      phone: callerNumber
-    }));
-    
-    gather.action(`/voice/appointment-details?session=${sessionData}`);
+const sessionData = encodeURIComponent(JSON.stringify({
+  name: customerName,
+  phone: callerNumber
+}));
+
+const gather = twiml.gather({
+  input: 'speech',
+  action: `/voice/appointment-details?session=${sessionData}`,  // Set the action with session data directly
+  method: 'POST',
+  speechTimeout: 6,
+  timeout: 15,
+  enhanced: true
+});
     
     twiml.say({
       voice: 'Polly.Salli'
