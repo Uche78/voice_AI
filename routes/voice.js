@@ -467,36 +467,32 @@ router.post('/appointment-confirm', async (req, res) => {
       date: selectedSlot.date,
       time: selectedSlot.time
     });
-    
-    // Send SMS notification to owner
-    try {
-      const smsService = require('../services/smsService');
-      await smsService.sendAppointmentNotification({
-        customerName: appointmentInfo.name,
-        customerPhone: appointmentInfo.phone,
-        service: appointmentInfo.service,
-        date: selectedSlot.date,
-        time: selectedSlot.time
-      });
-    } catch (smsError) {
-      console.error('Error sending SMS notification:', smsError);
-    }
-    
-    twiml.hangup();
-    
-    res.type('text/xml');
-    res.send(twiml.toString());
-  } catch (error) {
-    console.error('Error confirming appointment:', error);
-    const twiml = new VoiceResponse();
-    twiml.say({
-      voice: 'Polly.Salli'
-    }, "I'm having trouble getting that scheduled. Let me connect you with the owner to get this sorted out.");
-    twiml.redirect('/voice/transfer');
-    res.type('text/xml');
-    res.send(twiml.toString());
-  }
-});
+
+// Send SMS notification to owner
+try {
+  const smsService = require('../services/smsService');
+  
+  // Send to owner
+  await smsService.sendAppointmentNotification({
+    customerName: appointmentInfo.name,
+    customerPhone: appointmentInfo.phone,
+    service: appointmentInfo.service,
+    date: selectedSlot.date,
+    time: selectedSlot.time
+  });
+  
+  // Send confirmation to customer
+  await smsService.sendCustomerAppointmentConfirmation({
+    customerName: appointmentInfo.name,
+    customerPhone: appointmentInfo.phone,
+    service: appointmentInfo.service,
+    date: selectedSlot.date,
+    time: selectedSlot.time
+  });
+  
+} catch (smsError) {
+  console.error('Error sending SMS notifications:', smsError);
+}
 
 // Handle transfer status
 router.post('/transfer-status', async (req, res) => {
