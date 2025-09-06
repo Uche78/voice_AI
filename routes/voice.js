@@ -383,22 +383,20 @@ const twiml = new VoiceResponse();
       voice: 'Polly.Salli'
     }, `Got it! So ${customerInfo.name}, you need help with ${serviceDetails}. ${availabilityMessage}`);
     
-    const gather = twiml.gather({
-      input: 'speech',
-      action: '/voice/appointment-confirm',
-      method: 'POST',
-      speechTimeout: 4,
-      timeout: 12,
-      enhanced: true
-    });
-    
     const finalSessionData = encodeURIComponent(JSON.stringify({
-      ...customerInfo,
-      service: serviceDetails,
-      availableSlots: availableSlots
-    }));
-    
-    gather.action(`/voice/appointment-confirm?session=${finalSessionData}`);
+  ...customerInfo,
+  service: serviceDetails,
+  availableSlots: availableSlots
+}));
+
+const gather = twiml.gather({
+  input: 'speech',
+  action: `/voice/appointment-confirm?session=${finalSessionData}`,
+  method: 'POST',
+  speechTimeout: 4,
+  timeout: 12,
+  enhanced: true
+});
     
     twiml.redirect('/voice/transfer');
     
