@@ -354,7 +354,7 @@ router.post('/appointment-details', async (req, res) => {
     const serviceDetails = req.body.SpeechResult || '';
     const sessionParam = req.query.session;
     const confidence = parseFloat(req.body.Confidence || 0);
-
+    
     // Add these debug lines:
     console.log(`=== APPOINTMENT DETAILS DEBUG ===`);
     console.log(`Speech Result: "${serviceDetails}"`);
@@ -362,6 +362,18 @@ router.post('/appointment-details', async (req, res) => {
     console.log(`Length: ${serviceDetails.length}`);
     console.log(`Session Param: ${sessionParam}`);
     console.log(`=== END DEBUG ===`);
+    
+    // Temporary test - bypass everything and go straight to time slots
+    if (sessionParam) {
+      const twiml = new VoiceResponse();
+      twiml.say({
+        voice: 'Polly.Salli'
+      }, "Got it! I have some openings coming up. Tomorrow I have 9 AM or 2 PM. Which works better?");
+      
+      res.type('text/xml');
+      res.send(twiml.toString());
+      return;
+    }
     
     let customerInfo = { name: 'Unknown', phone: req.body.From || '' };
     if (sessionParam) {
@@ -384,6 +396,8 @@ router.post('/appointment-details', async (req, res) => {
       res.send(twiml.toString());
       return;
     }
+    
+    // ... rest of your existing code continues here
     
     // Get available time slots
     const availableSlots = openaiService.getAvailableTimeSlots();
