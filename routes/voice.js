@@ -354,6 +354,14 @@ router.post('/appointment-details', async (req, res) => {
     const serviceDetails = req.body.SpeechResult || '';
     const sessionParam = req.query.session;
     const confidence = parseFloat(req.body.Confidence || 0);
+
+    // Add these debug lines:
+    console.log(`=== APPOINTMENT DETAILS DEBUG ===`);
+    console.log(`Speech Result: "${serviceDetails}"`);
+    console.log(`Confidence: ${confidence}`);
+    console.log(`Length: ${serviceDetails.length}`);
+    console.log(`Session Param: ${sessionParam}`);
+    console.log(`=== END DEBUG ===`);
     
     let customerInfo = { name: 'Unknown', phone: req.body.From || '' };
     if (sessionParam) {
@@ -366,7 +374,7 @@ router.post('/appointment-details', async (req, res) => {
     
     const twiml = new VoiceResponse();
     
-    if (serviceDetails.length < 5 || confidence < 0.6) {
+    if (serviceDetails.length < 3 || confidence < 0.4) {
       twiml.say({
         voice: 'Polly.Salli'
       }, "I need a bit more info about what you need done. Let me get the owner for you.");
