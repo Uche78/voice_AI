@@ -106,9 +106,37 @@ Please call them back when available.`;
   }
 }
 
+async function sendCustomerAppointmentConfirmation(appointmentData) {
+  try {
+    const { customerName, customerPhone, service, date, time } = appointmentData;
+    const shopName = process.env.SHOP_NAME || 'Auto Repair Shop';
+    
+    const message = `Hi ${customerName}! Your appointment is confirmed:
+
+📅 ${date} at ${time}
+🔧 Service: ${service}
+📍 ${shopName}
+
+We'll see you then! If you need to reschedule, please call us.`;
+
+    await client.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: customerPhone
+    });
+    
+    console.log('Appointment confirmation sent to customer');
+    return true;
+  } catch (error) {
+    console.error('Error sending customer confirmation SMS:', error);
+    return false;
+  }
+}
+
 module.exports = {
   sendAppointmentNotification,
   sendVoiceMessageNotification,
   sendGeneralNotification,
-  sendOwnerUnavailableNotification
+  sendOwnerUnavailableNotification,
+  sendCustomerAppointmentConfirmation
 };
