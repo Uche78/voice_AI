@@ -363,41 +363,43 @@ router.post('/appointment-details', async (req, res) => {
     console.log(`Session Param: ${sessionParam}`);
     console.log(`=== END DEBUG ===`);
     
-    // Temporary test - bypass everything and go straight to time slots
-    if (sessionParam) {
-      const twiml = new VoiceResponse();
-      twiml.say({
-        voice: 'Polly.Salli'
-      }, "Got it! I have some openings coming up. Tomorrow I have 9 AM or 2 PM. Which works better?");
-      
-      res.type('text/xml');
-      res.send(twiml.toString());
-      return;
-    }
-    
     let customerInfo = { name: 'Unknown', phone: req.body.From || '' };
-    if (sessionParam) {
-      try {
-        customerInfo = JSON.parse(decodeURIComponent(sessionParam));
-      } catch (e) {
-        console.error('Error parsing session data:', e);
-      }
-    }
-    
-    const twiml = new VoiceResponse();
-    
-    if (serviceDetails.length < 3 || confidence < 0.4) {
-      twiml.say({
-        voice: 'Polly.Salli'
-      }, "I need a bit more info about what you need done. Let me get the owner for you.");
-      
-      twiml.redirect('/voice/transfer');
-      res.type('text/xml');
-      res.send(twiml.toString());
-      return;
-    }
-    
-    // ... rest of your existing code continues here
+if (sessionParam) {
+  try {
+    customerInfo = JSON.parse(decodeURIComponent(sessionParam));
+  } catch (e) {
+    console.error('Error parsing session data:', e);
+  }
+}
+
+const twiml = new VoiceResponse();
+
+// Get available time slots
+const availableSlots = openaiService.getAvailableTimeSlots();
+const availabilityMessage = openaiService.formatAvailableSlots();
+
+twiml.say({
+  voice: 'Polly.Salli'
+}, `Got it! So ${customerInfo.name}, you need help with ${serviceDetails}. ${availabilityMessage}`);
+
+const gather = twiml.gather({
+  input: 'speech',
+  action: '/voice/appointment-confirm',
+  method: 'POST',
+  speechTimeout: 4,
+  timeout: 12,
+  enhanced: true
+});
+
+const finalSessionData = encodeURIComponent(JSON.stringify({
+  ...customerInfo,
+  service: serviceDetails,
+  availableSlots: availableSlots
+}));
+
+gather.action(`/voice/appointment-confirm?session=${finalSessionData}`);
+
+twiml.redirect('/voice/transfer');
     
     // Get available time slots
     const availableSlots = openaiService.getAvailableTimeSlots();
