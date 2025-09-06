@@ -99,7 +99,7 @@ router.post('/process', async (req, res) => {
     }, response.message);
     
     if (response.action === 'faq') {
-  twiml.say({ voice: 'Polly.Salli' }, response.message);
+  //twiml.say({ voice: 'Polly.Salli' }, response.message);
   
   // Continue conversation instead of ending
   const gather = twiml.gather({
