@@ -270,7 +270,32 @@ router.post('/appointment', async (req, res) => {
 // Capture appointment name
 router.post('/appointment-name', async (req, res) => {
   try {
-    const customerName = req.body.SpeechResult || '';
+    const speechResult = req.body.SpeechResult || '';
+    let customerName = speechResult;
+
+// Extract just the name from common phrases
+    const namePatterns = [
+      /my name is (\w+)/i,
+      /i'm (\w+)/i,
+      /this is (\w+)/i,
+      /(\w+) speaking/i,
+      /it's (\w+)/i,
+      /call me (\w+)/i
+    ];
+
+    for (const pattern of namePatterns) {
+      const match = speechResult.match(pattern);
+      if (match && match[1]) {
+        customerName = match[1];
+        break;
+        }
+     }
+
+// If no pattern matched but it's a short response, assume it's just the name
+     if (customerName === speechResult && speechResult.split(' ').length <= 2) {
+       customerName = speechResult.trim();
+     }    
+    
     const callerNumber = req.body.From || '';
     const confidence = parseFloat(req.body.Confidence || 0);
     
