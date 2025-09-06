@@ -494,6 +494,22 @@ try {
   console.error('Error sending SMS notifications:', smsError);
 }
 
+    twiml.hangup();
+    
+    res.type('text/xml');
+    res.send(twiml.toString());
+  } catch (error) {
+    console.error('Error confirming appointment:', error);
+    const twiml = new VoiceResponse();
+    twiml.say({
+      voice: 'Polly.Salli'
+    }, "I'm having trouble getting that scheduled. Let me connect you with the owner to get this sorted out.");
+    twiml.redirect('/voice/transfer');
+    res.type('text/xml');
+    res.send(twiml.toString());
+  }
+});
+
 // Handle transfer status
 router.post('/transfer-status', async (req, res) => {
   try {
