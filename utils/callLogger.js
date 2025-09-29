@@ -1,16 +1,30 @@
-// Persistent call logging using Vercel KV (Redis)
-const { kv } = require('@vercel/kv');
+// Persistent call logging using Vercel KV (Redis) - Debug Version
+let kv;
+let kvAvailable = false;
+
+try {
+  // Try to import Vercel KV
+  const kvModule = require('@vercel/kv');
+  kv = kvModule.kv;
+  kvAvailable = !!process.env.KV_REST_API_URL;
+} catch (error) {
+  console.warn('⚠️ Vercel KV not available:', error.message);
+  kvAvailable = false;
+}
 
 class CallLogger {
   constructor() {
-    // Check if KV is available
-    this.useKV = !!process.env.KV_REST_API_URL;
+    this.useKV = kvAvailable;
+    
+    // Always initialize in-memory storage as fallback
+    this.calls = [];
+    this.messages = [];
+    this.appointments = [];
     
     if (!this.useKV) {
       console.warn('⚠️ Vercel KV not configured. Using in-memory storage (data will be lost on restart)');
-      this.calls = [];
-      this.messages = [];
-      this.appointments = [];
+    } else {
+      console.log('✅ Vercel KV is configured and available');
     }
   }
 
@@ -26,15 +40,14 @@ class CallLogger {
     
     if (this.useKV) {
       try {
-        // Add to calls list
         await kv.lpush('calls', JSON.stringify(logEntry));
-        // Keep only last 100 calls
         await kv.ltrim('calls', 0, 99);
-        // Update stats
         await kv.incr('stats:totalCalls');
         await kv.set('stats:lastCall', logEntry.timestamp);
       } catch (error) {
         console.error('Error logging call to KV:', error);
+        // Fallback to in-memory
+        this.calls.push(logEntry);
       }
     } else {
       this.calls.push(logEntry);
@@ -60,6 +73,7 @@ class CallLogger {
         await kv.incr('stats:totalMessages');
       } catch (error) {
         console.error('Error logging message to KV:', error);
+        this.messages.push(logEntry);
       }
     } else {
       this.messages.push(logEntry);
@@ -88,6 +102,7 @@ class CallLogger {
         await kv.incr('stats:totalAppointments');
       } catch (error) {
         console.error('Error logging appointment to KV:', error);
+        this.appointments.push(logEntry);
       }
     } else {
       this.appointments.push(logEntry);
@@ -98,14 +113,19 @@ class CallLogger {
   }
 
   async getRecentCalls(limit = 10) {
+    console.log('getRecentCalls called, useKV:', this.useKV);
+    
     if (this.useKV) {
       try {
         const calls = await kv.lrange('calls', 0, limit - 1);
-        // Ensure we always return an array
+        console.log('KV returned calls:', calls, 'Type:', typeof calls, 'IsArray:', Array.isArray(calls));
+        
         if (!calls || !Array.isArray(calls)) {
+          console.log('No calls or not array, returning empty array');
           return [];
         }
-        return calls.map(call => {
+        
+        const parsed = calls.map(call => {
           try {
             return typeof call === 'string' ? JSON.parse(call) : call;
           } catch (e) {
@@ -113,11 +133,16 @@ class CallLogger {
             return null;
           }
         }).filter(call => call !== null);
+        
+        console.log('Returning parsed calls:', parsed.length);
+        return parsed;
       } catch (error) {
         console.error('Error fetching calls from KV:', error);
         return [];
       }
     }
+    
+    console.log('Using in-memory calls:', this.calls.length);
     return this.calls.slice(-limit);
   }
 
@@ -125,10 +150,11 @@ class CallLogger {
     if (this.useKV) {
       try {
         const messages = await kv.lrange('messages', 0, limit - 1);
-        // Ensure we always return an array
+        
         if (!messages || !Array.isArray(messages)) {
           return [];
         }
+        
         return messages.map(msg => {
           try {
             return typeof msg === 'string' ? JSON.parse(msg) : msg;
@@ -149,10 +175,11 @@ class CallLogger {
     if (this.useKV) {
       try {
         const appointments = await kv.lrange('appointments', 0, limit - 1);
-        // Ensure we always return an array
+        
         if (!appointments || !Array.isArray(appointments)) {
           return [];
         }
+        
         return appointments.map(apt => {
           try {
             return typeof apt === 'string' ? JSON.parse(apt) : apt;
