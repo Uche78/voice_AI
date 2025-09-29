@@ -1,4 +1,4 @@
-// Persistent call logging using Vercel KV (Rediis)
+// Persistent call logging using Vercel KV (Redis)
 const { kv } = require('@vercel/kv');
 
 class CallLogger {
@@ -101,7 +101,18 @@ class CallLogger {
     if (this.useKV) {
       try {
         const calls = await kv.lrange('calls', 0, limit - 1);
-        return calls.map(call => JSON.parse(call));
+        // Ensure we always return an array
+        if (!calls || !Array.isArray(calls)) {
+          return [];
+        }
+        return calls.map(call => {
+          try {
+            return typeof call === 'string' ? JSON.parse(call) : call;
+          } catch (e) {
+            console.error('Error parsing call:', e);
+            return null;
+          }
+        }).filter(call => call !== null);
       } catch (error) {
         console.error('Error fetching calls from KV:', error);
         return [];
@@ -114,7 +125,18 @@ class CallLogger {
     if (this.useKV) {
       try {
         const messages = await kv.lrange('messages', 0, limit - 1);
-        return messages.map(msg => JSON.parse(msg));
+        // Ensure we always return an array
+        if (!messages || !Array.isArray(messages)) {
+          return [];
+        }
+        return messages.map(msg => {
+          try {
+            return typeof msg === 'string' ? JSON.parse(msg) : msg;
+          } catch (e) {
+            console.error('Error parsing message:', e);
+            return null;
+          }
+        }).filter(msg => msg !== null);
       } catch (error) {
         console.error('Error fetching messages from KV:', error);
         return [];
@@ -127,7 +149,18 @@ class CallLogger {
     if (this.useKV) {
       try {
         const appointments = await kv.lrange('appointments', 0, limit - 1);
-        return appointments.map(apt => JSON.parse(apt));
+        // Ensure we always return an array
+        if (!appointments || !Array.isArray(appointments)) {
+          return [];
+        }
+        return appointments.map(apt => {
+          try {
+            return typeof apt === 'string' ? JSON.parse(apt) : apt;
+          } catch (e) {
+            console.error('Error parsing appointment:', e);
+            return null;
+          }
+        }).filter(apt => apt !== null);
       } catch (error) {
         console.error('Error fetching appointments from KV:', error);
         return [];
