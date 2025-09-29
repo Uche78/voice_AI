@@ -7,11 +7,11 @@ const router = express.Router();
 // Enhanced admin dashboard with ElevenLabs conversation history
 router.get('/dashboard', async (req, res) => {
   try {
-    // Get local stats (your existing system)
-    const localStats = callLogger.getStats();
-    const recentCalls = callLogger.getRecentCalls(5);
-    const recentMessages = callLogger.getRecentMessages(5);
-    const recentAppointments = callLogger.getRecentAppointments(5);
+    // Get local stats (your existing system) - NOW WITH AWAIT
+    const localStats = await callLogger.getStats();
+    const recentCalls = await callLogger.getRecentCalls(5);
+    const recentMessages = await callLogger.getRecentMessages(5);
+    const recentAppointments = await callLogger.getRecentAppointments(5);
     
     // Get ElevenLabs conversation data
     let elevenlabsStats = {};
@@ -120,7 +120,7 @@ router.get('/dashboard', async (req, res) => {
                   </tr>
                 </thead>
                 <tbody>
-                  ${conversations.map(conv => `
+                  ${conversations.length > 0 ? conversations.map(conv => `
                     <tr class="conversation-row" onclick="viewConversation('${conv.id}')">
                       <td class="timestamp">${conv.startTime}</td>
                       <td>${conv.callerNumber}</td>
@@ -132,7 +132,7 @@ router.get('/dashboard', async (req, res) => {
                         <button onclick="event.stopPropagation(); playAudio('${conv.id}')" style="padding: 5px 10px;">Play Audio</button>
                       </td>
                     </tr>
-                  `).join('')}
+                  `).join('') : '<tr><td colspan="6" style="text-align: center; padding: 20px;">No ElevenLabs conversations yet. They will appear here once you enable ConvAI.</td></tr>'}
                 </tbody>
               </table>
             </div>
@@ -149,14 +149,14 @@ router.get('/dashboard', async (req, res) => {
                   </tr>
                 </thead>
                 <tbody>
-                  ${recentCalls.map(call => `
+                  ${recentCalls.length > 0 ? recentCalls.map(call => `
                     <tr>
                       <td class="timestamp">${new Date(call.timestamp).toLocaleString()}</td>
                       <td>${call.callerNumber}</td>
                       <td>${call.action}</td>
                       <td>${call.details}</td>
                     </tr>
-                  `).join('')}
+                  `).join('') : '<tr><td colspan="4" style="text-align: center; padding: 20px;">No calls logged yet. Make a test call to see data here!</td></tr>'}
                 </tbody>
               </table>
             </div>
@@ -174,7 +174,7 @@ router.get('/dashboard', async (req, res) => {
                   </tr>
                 </thead>
                 <tbody>
-                  ${recentAppointments.map(apt => `
+                  ${recentAppointments.length > 0 ? recentAppointments.map(apt => `
                     <tr>
                       <td>${apt.customerName}</td>
                       <td>${apt.customerPhone}</td>
@@ -182,7 +182,7 @@ router.get('/dashboard', async (req, res) => {
                       <td>${apt.appointmentDate} at ${apt.appointmentTime}</td>
                       <td>${apt.status}</td>
                     </tr>
-                  `).join('')}
+                  `).join('') : '<tr><td colspan="5" style="text-align: center; padding: 20px;">No appointments booked yet.</td></tr>'}
                 </tbody>
               </table>
             </div>
@@ -192,7 +192,7 @@ router.get('/dashboard', async (req, res) => {
         <div class="card">
           <h2>System Health</h2>
           <p><strong>Server Status:</strong> ✅ Running</p>
-          <p><strong>ElevenLabs Integration:</strong> ${conversations.length > 0 ? '✅ Connected' : '⚠️ Check API Key'}</p>
+          <p><strong>ElevenLabs Integration:</strong> ${conversations.length > 0 ? '✅ Connected' : '⚠️ Disabled/No Data'}</p>
           <p><strong>Last Activity:</strong> ${localStats.lastCall ? new Date(localStats.lastCall).toLocaleString() : 'No activity yet'}</p>
           <p><strong>Environment:</strong> ${process.env.NODE_ENV || 'development'}</p>
         </div>
@@ -200,17 +200,14 @@ router.get('/dashboard', async (req, res) => {
 
       <script>
         function showTab(tabName) {
-          // Hide all tab contents
           document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.remove('active');
           });
           
-          // Remove active class from all buttons
           document.querySelectorAll('.tab-button').forEach(button => {
             button.classList.remove('active');
           });
           
-          // Show selected tab
           document.getElementById(tabName).classList.add('active');
           event.target.classList.add('active');
         }
@@ -239,11 +236,34 @@ router.get('/dashboard', async (req, res) => {
     res.send(html);
   } catch (error) {
     console.error('Error rendering dashboard:', error);
-    res.status(500).json({ error: 'Dashboard error' });
+    res.status(500).json({ 
+      error: 'Dashboard error',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
-// New route: View specific conversation details
+// API endpoint to get stats as JSON (enhanced)
+router.get('/stats', async (req, res) => {
+  try {
+    const localStats = await callLogger.getStats();
+    const elevenlabsStats = await elevenlabsService.getConversationStats();
+    
+    res.json({
+      local: localStats,
+      elevenlabs: elevenlabsStats,
+      recentCalls: await callLogger.getRecentCalls(10),
+      recentMessages: await callLogger.getRecentMessages(10),
+      recentAppointments: await callLogger.getRecentAppointments(10)
+    });
+  } catch (error) {
+    console.error('Error getting stats:', error);
+    res.status(500).json({ error: 'Error retrieving stats', message: error.message });
+  }
+});
+
+// View specific conversation details
 router.get('/conversation/:id', async (req, res) => {
   try {
     const conversationId = req.params.id;
@@ -256,7 +276,7 @@ router.get('/conversation/:id', async (req, res) => {
   }
 });
 
-// New route: Get conversation transcript
+// Get conversation transcript
 router.get('/transcript/:id', async (req, res) => {
   try {
     const conversationId = req.params.id;
@@ -301,7 +321,7 @@ router.get('/transcript/:id', async (req, res) => {
   }
 });
 
-// New route: Stream conversation audio
+// Stream conversation audio
 router.get('/audio/:id', async (req, res) => {
   try {
     const conversationId = req.params.id;
@@ -314,25 +334,6 @@ router.get('/audio/:id', async (req, res) => {
   } catch (error) {
     console.error('Error streaming audio:', error);
     res.status(500).send('Error loading audio');
-  }
-});
-
-// API endpoint to get stats as JSON (enhanced)
-router.get('/stats', async (req, res) => {
-  try {
-    const localStats = callLogger.getStats();
-    const elevenlabsStats = await elevenlabsService.getConversationStats();
-    
-    res.json({
-      local: localStats,
-      elevenlabs: elevenlabsStats,
-      recentCalls: callLogger.getRecentCalls(10),
-      recentMessages: callLogger.getRecentMessages(10),
-      recentAppointments: callLogger.getRecentAppointments(10)
-    });
-  } catch (error) {
-    console.error('Error getting stats:', error);
-    res.status(500).json({ error: 'Error retrieving stats' });
   }
 });
 
