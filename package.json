@@ -14,6 +14,7 @@
     "node-cron": "^4.2.1",
     "openai": "^5.16.0",
     "twilio": "^5.8.2"
+    "@vercel/kv": "^3.0.0",
   },
   "engines": {
     "node": "20.x"
