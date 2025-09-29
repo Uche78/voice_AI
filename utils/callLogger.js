@@ -1,4 +1,4 @@
-// Persistent call logging using Vercel KV (Redis)
+// Persistent call logging using Vercel KV (Rediis)
 const { kv } = require('@vercel/kv');
 
 class CallLogger {
